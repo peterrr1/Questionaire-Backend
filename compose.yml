@@ -1,0 +1,75 @@
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${PGSQL_ROOT_USER}
+      POSTGRES_PASSWORD: ${PGSQL_ROOT_PASSWORD}
+      POSTGRES_DB: ${PGSQL_DB_NAME_DEV}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/data/postgres
+    networks:
+      - backend
+
+  mongodb:
+    container_name: mongodb
+    hostname: mongodb
+    image: mongo:latest
+    volumes:
+      - mongodb-data:/data/db/
+      - mongodb-log:/var/log/mongodb/
+      - ./db/mongodb/initdb.d/init_quiz_db.js:/docker-entrypoint-initdb.d/init_quiz_db.js:ro
+      - ./db/mongodb/initdb.d/data.json:/docker-entrypoint-initdb.d/questions.json:ro
+    env_file:
+      - .env
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    networks:
+      - backend
+  
+  azurite:
+    container_name: azurite
+    hostname: azurite
+    image: mcr.microsoft.com/azure-storage/azurite
+    restart: unless-stopped
+    expose:
+      - 10000
+    ports:
+      - "10000:10000"
+    command: 'azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --loose --skipApiVersionCheck' 
+    networks:
+      - backend
+
+
+    
+volumes:
+  postgres-data:
+    driver: local
+    name: postgres-data
+  mongodb-data:
+    driver: local
+    name: mongodb-data
+  mongodb-log:
+    driver: local
+    name: mongodb-log
+
+networks:
+  backend:
+    driver: bridge
+    name: backend
+    
+  frontend:
+    driver: bridge
+    name: frontend
+
+
+

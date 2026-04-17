@@ -1,0 +1,31 @@
+import { UserDto } from "src/modules/user/dto/response/user.dto"
+import { Visibility } from "src/modules/common/enums/enum.common"
+import { Exclude, Expose } from "class-transformer"
+import { IsString } from "class-validator"
+
+
+@Exclude()
+export class QuizInfoDto {
+    @Expose()
+    @IsString()
+    id: string
+    
+    @Expose()
+    @IsString()
+    name: string
+
+    @Expose()
+    @IsString()
+    collection_id: string
+
+    @Expose()
+    visibility: Visibility
+
+    @Expose()
+    author: UserDto
+
+    @Expose()
+    question_categories: Array<string>
+}
+
+
