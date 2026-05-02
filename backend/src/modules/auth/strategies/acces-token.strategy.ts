@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
@@ -22,8 +22,14 @@ export class JwtAccessTokenStrategy extends PassportStrategy(Strategy, "jwt-acce
      }
 
     async validate(payload: JwtPayload) {
-        // Look up user in the DB, if it doesn't exist, throw exception
-        await this.userService.findUserById(payload.sub)
+        // Look up user in the DB, if it doesn't exist it throws 404
+        // We catch 404 here then throw 401
+        try {
+            await this.userService.findUserById(payload.sub)
+        } catch (e) {
+            throw new UnauthorizedException("User with the specific user id is unauthorized.")
+        }
+        
         return payload
     }
 }

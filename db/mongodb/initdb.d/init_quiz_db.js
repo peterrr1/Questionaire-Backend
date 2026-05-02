@@ -16,7 +16,7 @@ if (!db.getCollectionNames().includes(COLLECTION_NAME)) {
   db.createCollection(COLLECTION_NAME);
 }
 
-function question(type, category, text, options, correctOptionIndex) {
+function question(type, category, text, options, correctOptionIndex, category_display_name) {
   const optionIds = options.map(() => new ObjectId().toString());
   
   const correctOptionIds = type === "SINGLE_OPTION"
@@ -29,6 +29,7 @@ function question(type, category, text, options, correctOptionIndex) {
     category: category,
     question: text,
     correct_option: correctOptionIds,
+    category_display_name: category_display_name,
     options: options.map((optionObj, index) => ({
       _id: optionIds[index],
       option: optionObj.text
@@ -51,7 +52,8 @@ try {
             q.category,
             q.text,
             q.options,
-            q.answer
+            q.answer,
+            q.category_display_name
         )
     )
     print(`Loaded ${document.length} questions from JSON file`);

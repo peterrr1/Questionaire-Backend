@@ -1,11 +1,11 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QuizEntity } from './entities/quiz.entity';
 import { MongoInvalidArgumentError, Repository } from 'typeorm';
 import { UserService } from '../user/user.service';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Question, QuestionDocument, QuestionSchema } from './schemas/question.schema';
-import { Connection, Model } from 'mongoose';
+import { Connection, ConnectionStates, Model } from 'mongoose';
 import { QuizInfoDto } from './dto/response/quiz.dto';
 import { UserDto } from '../user/dto/response/user.dto';
 import { QuizInfoCompactDto } from './dto/response/quiz-compact.dto';
@@ -13,6 +13,10 @@ import { plainToClass, plainToInstance } from 'class-transformer';
 import { QuestionDto } from './dto/response/question.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { FilesAzureService } from 'src/shared/files/files.service';
+import { QuizDraftDto } from './dto/request/quiz-draft.dto';
+import { toCategoryKey, toCategoryKeyHash } from 'src/utils/category.util';
+import { Visibility } from '../common/enums/enum.common';
+import { UUID } from 'typeorm/driver/mongodb/bson.typings.js';
 
 @Injectable()
 export class QuizService {
@@ -59,8 +63,7 @@ export class QuizService {
         throw new NotFoundException("Collection doesn't exists!")
     }
 
-
-    async createQuiz(user_id: string, name: string): Promise<void> {
+    async createQuiz(user_id: string, quizDraft: QuizDraftDto): Promise<void> {
         // Find the user that creates the quiz
         const user = await this.userService.findUserById(user_id)
         const quizId = uuidv4()
@@ -70,9 +73,12 @@ export class QuizService {
         // Create a quiz entity
         const newQuiz = this.quizRepository.create({
             id: quizId,
-            name: name,
+            name: quizDraft.quiz_information.quiz_name,
+            question_categories: quizDraft.quiz_information.question_categories.map(q => toCategoryKey(q)),
+            categories_display_name: quizDraft.quiz_information.question_categories,
+            visibility: quizDraft.quiz_information.visibility as Visibility,
             author: user,
-            displayImageUrl: defaultDisplayImageUrl
+            displayImageUrl: defaultDisplayImageUrl,
         })
 
         // Save the newly created quiz entity
@@ -88,9 +94,33 @@ export class QuizService {
             QuestionSchema,
             newQuiz.collection_id
         )
+        
+        // Add questions
+        if (quizDraft === undefined) {
+            throw new BadRequestException("Quiz draft wasn't specified.")
+        }
+
+        this.connection.model<QuestionDocument>(newQuiz.collection_id).create(
+            quizDraft.questions.map(q => {
+                const options = q.options.map(o => ({
+                    _id: uuidv4(),
+                    option: o.option
+                }))
+                const correctOptionId = options[q.correct_option - 1]._id
+                return {
+                    type: q.type,
+                    category: toCategoryKey(q.category),
+                    category_display_name: q.category,
+                    question: q.question,
+                    correct_option: correctOptionId,
+                    options: options
+                    }}
+                )
+        )
     }
 
-    async createQuizWithSpecificId(user_id: string, name: string, collection_id: string) {
+
+    async createQuizWithSpecificId(user_id: string, name: string, collection_id: string, categories_display_name: string[]) {
         const user = await this.userService.findUserById(user_id)
         const quizId = uuidv4()
 
@@ -102,6 +132,8 @@ export class QuizService {
             collection_id: collection_id,
             name: name,
             author: user,
+            question_categories: categories_display_name.map(q => toCategoryKey(q)),
+            categories_display_name: categories_display_name,
             displayImageUrl: defaultDisplayImageUrl
         })
         // Save the newly created quiz entity
@@ -113,6 +145,10 @@ export class QuizService {
             QuestionSchema,
             newQuiz.collection_id
         )
+    }
+
+    async addQuestionToDocument(collection_id, question): Promise<void> {
+        this.connection.model<QuestionDocument>(collection_id).insertOne(question)
     }
 
     async getAllQuiz(): Promise<QuizInfoCompactDto[]> {
@@ -148,8 +184,7 @@ export class QuizService {
         if (questions === null) {
             throw new NotFoundException(`Can't find questions for this quiz.`)    
         }
-        return questions.map(quiz => plainToClass(QuestionDto, quiz, {excludeExtraneousValues: true}))
-
+        return questions.map(q => plainToClass(QuestionDto, q, {excludeExtraneousValues: true}))
     }
 
     async getAllQuestionByCategoryOrThrow(collection: string, category: string): Promise<QuestionDto[]> {
@@ -157,12 +192,12 @@ export class QuizService {
         if (questions === null) {
             throw new NotFoundException(`Can't find questions for category ${category} in this quiz.`)    
         }
-        return questions.map(quiz => plainToClass(QuestionDto, quiz, {excludeExtraneousValues: true}))
+        return questions.map(q => plainToClass(QuestionDto, q, {excludeExtraneousValues: true}))
     } 
 
 
     
-    createQuizInfoResponseDto(quizInfo: QuizEntity, questionCategories: Array<string>): QuizInfoDto {
+    async createQuizInfoResponseDto(quizInfo: QuizEntity): Promise<QuizInfoDto> {
         const userPublicInfoDto = {
             username: quizInfo.author.username,
             createdAt: quizInfo.author.createdAt
@@ -175,7 +210,8 @@ export class QuizService {
             collection_id: quizInfo.collection_id,
             visibility: quizInfo.visibility,
             author: userPublicInfoDto,
-            question_categories: questionCategories
+            question_categories: quizInfo.question_categories,
+            categories_display_name: quizInfo.categories_display_name
         } as QuizInfoDto
         
         return quizInfoDto

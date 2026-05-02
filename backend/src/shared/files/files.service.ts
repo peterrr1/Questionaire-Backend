@@ -14,6 +14,7 @@ export class FilesAzureService {
     private async getBlobServiceInstance(): Promise<BlobServiceClient> {
         const connectionString = this.configService.get('AZURE_CONNECTION_STRING')
         const blobClientService = await BlobServiceClient.fromConnectionString(connectionString)
+
         return blobClientService
     }
 
@@ -21,6 +22,7 @@ export class FilesAzureService {
         const blobService = await this.getBlobServiceInstance()
         const containerName = this.containerName
         const containerClient = blobService.getContainerClient(containerName)
+        await containerClient.createIfNotExists()
         const blockBlobClient = containerClient.getBlockBlobClient(fileName)
         
         return blockBlobClient

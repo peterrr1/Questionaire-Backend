@@ -3,24 +3,28 @@ import { HydratedDocument } from "mongoose";
 
 export type QuestionDocument = HydratedDocument<Question>
 
-export class Option {
+export class Option {   
     _id: string
     option: string
 }
 
 @Schema()
 export class Question {
-    @Prop()
+    @Prop({required: true})
     type: string
 
-    @Prop()
+    @Prop({required: true})
     category: string
 
-    @Prop()
+    @Prop({required: true})
+    category_display_name: string
+
+    @Prop({required: true})
     question: string
 
-    @Prop()
+    @Prop({required: true})
     correct_option: string
+
 
     @Prop([Option])
     options: Option[]

@@ -72,6 +72,7 @@ export class AuthService {
 
     async refreshTokens(userId: string, refreshToken: string): Promise<UserAuthTokensDto> {
         const user = await this.userService.findUserById(userId)
+        console.log(`UserID: ${userId}`)
         console.log(user)
         if (!user || !user.refreshToken) {
             throw new ForbiddenException("Access Denied")

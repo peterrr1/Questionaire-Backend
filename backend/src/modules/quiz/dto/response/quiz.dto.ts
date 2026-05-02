@@ -26,6 +26,9 @@ export class QuizInfoDto {
 
     @Expose()
     question_categories: Array<string>
+
+    @Expose()
+    categories_display_name: Array<string>
 }
 
 

@@ -15,6 +15,7 @@ export class AuthController {
 
     @Post('login')
     async login(@Body() loginData: LoginUserDto): Promise<UserAuthTokensDto> {
+        console.log(loginData)
         return this.authService.login(loginData)
     }
 
@@ -35,7 +36,9 @@ export class AuthController {
     @Get('refresh')
     async refreshTokens(@Req() req: Request) {
         const userId = req.user?.['sub']
+        console.log(`UserID: ${userId}`)
         const refreshToken = req.user?.['refreshToken']
+        console.log(`Token: ${refreshToken}`)
         
         return this.authService.refreshTokens(userId, refreshToken)
     }

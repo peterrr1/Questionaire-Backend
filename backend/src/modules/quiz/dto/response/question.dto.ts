@@ -17,6 +17,10 @@ export class QuestionDto {
 
     @Expose()
     @IsString()
+    category_display_name: string
+
+    @Expose()
+    @IsString()
     question: string
 
     @Expose()

@@ -21,6 +21,12 @@ export class QuizEntity extends DefaultEntity {
     })
     visibility: Visibility
 
+    @Column('simple-array')
+    question_categories: string[]
+
+    @Column('simple-array')
+    categories_display_name: string[]
+
     @Column()
     displayImageUrl: string
 

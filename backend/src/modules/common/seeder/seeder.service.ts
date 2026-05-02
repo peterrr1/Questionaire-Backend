@@ -1,8 +1,11 @@
 import { Injectable, NotFoundException, OnApplicationBootstrap } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { InjectConnection } from "@nestjs/mongoose";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Connection } from "mongoose";
 import { QuizEntity } from "src/modules/quiz/entities/quiz.entity";
 import { QuizService } from "src/modules/quiz/quiz.service";
+import { QuestionDocument } from "src/modules/quiz/schemas/question.schema";
 import { UserEntity } from "src/modules/user/entity/user.entity";
 import { UserService } from "src/modules/user/user.service";
 import { Repository } from "typeorm";
@@ -10,6 +13,7 @@ import { Repository } from "typeorm";
 @Injectable()
 export class SeederService implements OnApplicationBootstrap {
     constructor(
+        @InjectConnection() private readonly connection: Connection,
         private userService: UserService,
         private quizService: QuizService,
         private readonly configService: ConfigService
@@ -48,7 +52,14 @@ export class SeederService implements OnApplicationBootstrap {
         if (!quizExists) {
             console.log("Default quiz does not exists, creating it now.")
             // If the default quiz doesn't exists create the quiz and the author profile
-            await this.quizService.createQuizWithSpecificId(userId!, quiz_name, collection_id)
+            // Get question categories 
+            let categories_display_name = await this.connection.model<QuestionDocument>(collection_id).distinct('category_display_name').exec()
+            let categories = await this.connection.model<QuestionDocument>(collection_id).distinct('category').exec()
+
+            console.log(`Categories display name: ${categories_display_name}`)
+            console.log(`Categories: ${categories}`)
+
+            await this.quizService.createQuizWithSpecificId(userId!, quiz_name, collection_id, categories_display_name)
             
         }
     }
