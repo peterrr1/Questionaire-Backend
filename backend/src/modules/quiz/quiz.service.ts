@@ -62,12 +62,10 @@ export class QuizService {
         }
         throw new NotFoundException("Collection doesn't exists!")
     }
+    
 
     async createQuiz(user_id: string, quizDraft: QuizDraftDto): Promise<void> {
-        // Find the user that creates the quiz
-        const user = await this.userService.findUserById(user_id)
         const quizId = uuidv4()
-
         const defaultDisplayImageUrl = await this.filesService.uploadDefaultQuizImage(quizId)
         
         // Create a quiz entity
@@ -77,51 +75,49 @@ export class QuizService {
             question_categories: quizDraft.quiz_information.question_categories.map(q => toCategoryKey(q)),
             categories_display_name: quizDraft.quiz_information.question_categories,
             visibility: quizDraft.quiz_information.visibility as Visibility,
-            author: user,
+            author: { id: user_id },
             displayImageUrl: defaultDisplayImageUrl,
-        })
+        }
+    )
 
         // Save the newly created quiz entity
         await this.quizRepository.save(newQuiz)
+
 
         console.log('Connection ID:', this.connection.id)
         console.log('Connection state:', this.connection.readyState)
         console.log('Model names:', this.connection.modelNames())
         
         // Create a mongodb collection
-        this.connection.model<QuestionDocument>(
+        const QuestionModel = this.connection.model<QuestionDocument>(
             newQuiz.collection_id,
             QuestionSchema,
             newQuiz.collection_id
         )
         
-        // Add questions
-        if (quizDraft === undefined) {
-            throw new BadRequestException("Quiz draft wasn't specified.")
-        }
+        const questions = quizDraft.questions.map(q => {
+            const options = q.options.map(o => ({
+            _id: uuidv4(),
+            option: o.option,
+            }));
 
-        this.connection.model<QuestionDocument>(newQuiz.collection_id).create(
-            quizDraft.questions.map(q => {
-                const options = q.options.map(o => ({
-                    _id: uuidv4(),
-                    option: o.option
-                }))
-                const correctOptionId = options[q.correct_option - 1]._id
-                return {
-                    type: q.type,
-                    category: toCategoryKey(q.category),
-                    category_display_name: q.category,
-                    question: q.question,
-                    correct_option: correctOptionId,
-                    options: options
-                    }}
-                )
-        )
+            const correctOptionId = options[q.correct_option - 1]._id;
+
+            return {
+            type: q.type,
+            category: toCategoryKey(q.category),
+            category_display_name: q.category,
+            question: q.question,
+            correct_option: correctOptionId,
+            options,
+            };
+        });
+
+        await QuestionModel.create(questions)
     }
 
 
-    async createQuizWithSpecificId(user_id: string, name: string, collection_id: string, categories_display_name: string[]) {
-        const user = await this.userService.findUserById(user_id)
+    async createQuizWithSpecificCollectionId(user_id: string, name: string, collection_id: string, categories_display_name: string[]) {
         const quizId = uuidv4()
 
         const defaultDisplayImageUrl = await this.filesService.uploadDefaultQuizImage(quizId)
@@ -131,7 +127,7 @@ export class QuizService {
             id: quizId,
             collection_id: collection_id,
             name: name,
-            author: user,
+            author: { id: user_id },
             question_categories: categories_display_name.map(q => toCategoryKey(q)),
             categories_display_name: categories_display_name,
             displayImageUrl: defaultDisplayImageUrl
@@ -139,6 +135,8 @@ export class QuizService {
         // Save the newly created quiz entity
         await this.quizRepository.save(newQuiz)
         
+
+
         // Create a mongodb collection
         this.connection.model<QuestionDocument>(
             newQuiz.collection_id,
@@ -149,6 +147,14 @@ export class QuizService {
 
     async addQuestionToDocument(collection_id, question): Promise<void> {
         this.connection.model<QuestionDocument>(collection_id).insertOne(question)
+    }
+
+    async isEditable(id: string, quiz_id: string): Promise<boolean> {
+        const user = await this.userService.findUserWithQuizzes(id)
+        console.log("ISEDITABLE")
+        console.log(id)
+        console.log(user)
+        return user.quizzes.some(q => q.id === quiz_id)
     }
 
     async getAllQuiz(): Promise<QuizInfoCompactDto[]> {
@@ -197,7 +203,10 @@ export class QuizService {
 
 
     
-    async createQuizInfoResponseDto(quizInfo: QuizEntity): Promise<QuizInfoDto> {
+    async createQuizInfoResponseDto(
+        quizInfo: QuizEntity,
+        editable: boolean = false
+    ): Promise<QuizInfoDto> {
         const userPublicInfoDto = {
             username: quizInfo.author.username,
             createdAt: quizInfo.author.createdAt
@@ -211,9 +220,14 @@ export class QuizService {
             visibility: quizInfo.visibility,
             author: userPublicInfoDto,
             question_categories: quizInfo.question_categories,
-            categories_display_name: quizInfo.categories_display_name
+            categories_display_name: quizInfo.categories_display_name,
+            editable: editable
         } as QuizInfoDto
         
         return quizInfoDto
+    }
+
+    async deleteQuizViaQuizId(quizId: string): Promise<void> {
+        await this.quizRepository.delete({id: quizId})
     }
 }

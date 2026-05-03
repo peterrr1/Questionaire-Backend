@@ -29,6 +29,9 @@ export class QuizInfoDto {
 
     @Expose()
     categories_display_name: Array<string>
+
+    @Expose()
+    editable: boolean
 }
 
 

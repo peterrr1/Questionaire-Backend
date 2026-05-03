@@ -30,7 +30,9 @@ export class QuizEntity extends DefaultEntity {
     @Column()
     displayImageUrl: string
 
-    @ManyToOne(() => UserEntity, (user) => user.quizzes)
+    @ManyToOne(() => UserEntity, (user) => user.quizzes, {
+        onDelete: 'CASCADE'
+    })
     author: UserEntity
 
     @BeforeInsert()
@@ -38,5 +40,4 @@ export class QuizEntity extends DefaultEntity {
         if (this.collection_id == null)
             this.collection_id = `quiz_${uuidv4()}`
     }
-
 }

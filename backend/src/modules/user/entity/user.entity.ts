@@ -24,8 +24,6 @@ export class UserEntity extends DefaultEntity {
     @Column()
     profilePictureUrl: string
 
-    @OneToMany(() => QuizEntity, (quiz) => quiz.author, {
-        cascade: true
-    })
+    @OneToMany(() => QuizEntity, (quiz) => quiz.author)
     quizzes: QuizEntity[]
 }

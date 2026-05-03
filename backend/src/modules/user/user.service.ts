@@ -35,8 +35,18 @@ export class UserService {
         return user
     }
 
+    async findUserWithQuizzes(id: string): Promise<UserEntity> {
+        const user = await this.userRepository.findOne({
+            where: { id },
+            relations: { quizzes: true },
+        });
+        if (!user) throw new NotFoundException("User with the given id does not exist!");
+        return user;
+    }
+
     async getUserById(id: string): Promise<UserDto> {
-        const user = await this.userRepository.findOneBy({id: id})
+        const user = await this.findUserWithQuizzes(id)
+        console.log(user)
         if (user === null) {
             throw new NotFoundException("User with the given email is not found!")
         }

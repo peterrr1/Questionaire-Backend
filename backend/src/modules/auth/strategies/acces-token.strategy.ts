@@ -25,11 +25,9 @@ export class JwtAccessTokenStrategy extends PassportStrategy(Strategy, "jwt-acce
         // Look up user in the DB, if it doesn't exist it throws 404
         // We catch 404 here then throw 401
         try {
-            await this.userService.findUserById(payload.sub)
+            return await this.userService.findUserById(payload.sub)
         } catch (e) {
             throw new UnauthorizedException("User with the specific user id is unauthorized.")
         }
-        
-        return payload
     }
 }

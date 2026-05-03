@@ -1,4 +1,4 @@
-import { ExceptionFilter, Injectable, NotFoundException, StreamableFile } from '@nestjs/common';
+import { Injectable, NotFoundException, StreamableFile } from '@nestjs/common';
 import { BlobServiceClient, BlockBlobClient } from '@azure/storage-blob';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,7 +13,7 @@ export class FilesAzureService {
 
     private async getBlobServiceInstance(): Promise<BlobServiceClient> {
         const connectionString = this.configService.get('AZURE_CONNECTION_STRING')
-        const blobClientService = await BlobServiceClient.fromConnectionString(connectionString)
+        const blobClientService = BlobServiceClient.fromConnectionString(connectionString)
 
         return blobClientService
     }
@@ -86,6 +86,11 @@ export class FilesAzureService {
         })
 
         return blockBlobClient.url
+    }
+
+    
+    async uploadDocument() {
+
     }
 
 

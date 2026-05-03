@@ -54,12 +54,10 @@ export class SeederService implements OnApplicationBootstrap {
             // If the default quiz doesn't exists create the quiz and the author profile
             // Get question categories 
             let categories_display_name = await this.connection.model<QuestionDocument>(collection_id).distinct('category_display_name').exec()
-            let categories = await this.connection.model<QuestionDocument>(collection_id).distinct('category').exec()
 
             console.log(`Categories display name: ${categories_display_name}`)
-            console.log(`Categories: ${categories}`)
 
-            await this.quizService.createQuizWithSpecificId(userId!, quiz_name, collection_id, categories_display_name)
+            await this.quizService.createQuizWithSpecificCollectionId(userId!, quiz_name, collection_id, categories_display_name)
             
         }
     }

@@ -13,25 +13,25 @@ export class UserController {
         private fileService: FilesAzureService
     ) {}
 
-    @UseGuards(JwtAccessTokenGuard)
+    //@UseGuards(JwtAccessTokenGuard)
     @Get('account')
     async getProfile(@Request() req: any): Promise<UserDto> {
         return this.userService.getUserById(req.user.id)
     }
 
-    @UseGuards(JwtAccessTokenGuard)
+    //@UseGuards(JwtAccessTokenGuard)
     @Delete('account')
     async deleteUserById(@Request() req: any): Promise<void> {
         return this.userService.deleteUserById(req.user.id)
     }
     
-    @UseGuards(JwtAccessTokenGuard)
+    //@UseGuards(JwtAccessTokenGuard)
     @Get('list')
     async getAllUser(): Promise<UserDto[]> {
         return this.userService.getAllUsers()
     }
 
-    @UseGuards(JwtAccessTokenGuard)
+    //@UseGuards(JwtAccessTokenGuard)
     @Get(':id')
     async getUserById(@Param('id', ParseUUIDPipe) id: string): Promise<UserDto> {
         const user =  await this.userService.getUserById(id)
