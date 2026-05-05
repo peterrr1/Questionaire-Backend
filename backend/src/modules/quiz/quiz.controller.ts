@@ -7,6 +7,7 @@ import { JwtAccessTokenGuard } from '../auth/guards/access-token.guard';
 import { QuizDraftDto } from './dto/request/quiz-draft.dto';
 import { UserService } from '../user/user.service';
 import { RequestUser } from 'src/utils/request-user-interface.util';
+import { OptionalJwtAccessTokenGuard } from '../auth/guards/optional-access-token.guard';
 
 
 @Controller('quiz')
@@ -27,10 +28,12 @@ export class QuizController {
         return this.quizService.createQuiz(req.user.id, dto)
     }
 
-    //@UseGuards(JwtAccessTokenGuard)
+    @UseGuards(OptionalJwtAccessTokenGuard)
     @Get('list')
-    async getAllQuiz(): Promise<QuizInfoCompactDto[]> {
-        return this.quizService.getAllQuiz()
+    async getAllQuiz(
+        @Request() req: { user: RequestUser | undefined }
+    ): Promise<QuizInfoCompactDto[]> {
+        return this.quizService.getAllQuiz(req.user?.id)
     }
 
     //@UseGuards(JwtAccessTokenGuard)
@@ -49,23 +52,34 @@ export class QuizController {
     @UseGuards(JwtAccessTokenGuard)    
     @Get('info/:quiz_id')
     async getQuizInformation(
-        @Request() req: {user : RequestUser},
+        @Request() req: {user : RequestUser | undefined},
         @Param('quiz_id') quiz_id: string
     ): Promise<QuizInfoDto> {
-        console.log(`INFO/:ID ->${req.user.id}`)
-        // Check user
-        const editable = await this.quizService.isEditable(req.user.id, quiz_id)
+        
         // Load quiz info
         const quizInfo = await this.quizService.findOneQuizByIdOrThrow(quiz_id)
-        console.log("QUIZ INFO")
-        console.log(quizInfo)
 
-        // Load question info
-        //const questionCategories = [...new Set((await this.quizService.getAllQuestionOrThrow(quizInfo.collection_id)).map((quiz) => quiz.category))]
+        if (req.user === undefined) {
+            const respondDto = this.quizService.createQuizInfoResponseDto(quizInfo, false)
+            //console.log(respondDto)
+            return respondDto
+        } else {
+            console.log(`INFO/:ID ->${req.user.id}`)
+            // Check user
+            const editable = await this.quizService.isEditable(req.user.id, quiz_id)
+            
+            console.log("QUIZ INFO")
+            console.log(quizInfo)
+
+            // Load question info
+            //const questionCategories = [...new Set((await this.quizService.getAllQuestionOrThrow(quizInfo.collection_id)).map((quiz) => quiz.category))]
+            
+            const respondDto = this.quizService.createQuizInfoResponseDto(quizInfo, editable)
+            //console.log(respondDto)
+            return respondDto
+        }
+
         
-        const respondDto = this.quizService.createQuizInfoResponseDto(quizInfo, editable)
-        //console.log(respondDto)
-        return respondDto
     }
 
     @UseGuards(JwtAccessTokenGuard)

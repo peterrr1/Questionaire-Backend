@@ -1,4 +1,5 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { TokenExpiredError } from "@nestjs/jwt";
 import { AuthGuard } from "@nestjs/passport";
 
 @Injectable()

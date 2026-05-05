@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QuizEntity } from './entities/quiz.entity';
-import { MongoInvalidArgumentError, Repository } from 'typeorm';
+import { FindManyOptions, FindOptionsWhere, MongoInvalidArgumentError, Repository } from 'typeorm';
 import { UserService } from '../user/user.service';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Question, QuestionDocument, QuestionSchema } from './schemas/question.schema';
@@ -157,10 +157,21 @@ export class QuizService {
         return user.quizzes.some(q => q.id === quiz_id)
     }
 
-    async getAllQuiz(): Promise<QuizInfoCompactDto[]> {
-        const quizList = await this.quizRepository.find()
+    
+    async getAllQuiz(userId: string | undefined): Promise<QuizInfoCompactDto[]> {
+        const where: FindOptionsWhere<QuizEntity>[] = [{visibility: Visibility.PUBLIC}]
+
+        if (userId !== undefined) {
+            where.push({author: {id: userId}})
+        }
+        const quizList = await this.quizRepository.find({
+            where,
+            relations: { author: true}
+        })
         return quizList.map(quiz => plainToClass(QuizInfoCompactDto, quiz))
     }
+
+
 
     async findQuizByIdOrNull(id: string): Promise<QuizEntity | null> {
         return this.quizRepository.findOneBy({id: id})
@@ -228,6 +239,13 @@ export class QuizService {
     }
 
     async deleteQuizViaQuizId(quizId: string): Promise<void> {
+        const quiz = await this.findOneQuizByIdOrThrow(quizId)
+        try {
+            await this.connection.model<QuestionDocument>(quiz.collection_id).collection.drop()
+        } catch (error) {
+            throw error
+        }
+        
         await this.quizRepository.delete({id: quizId})
     }
 }
