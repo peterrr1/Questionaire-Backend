@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { Request } from "express";
@@ -20,7 +20,8 @@ export class JwtAccessTokenStrategy extends PassportStrategy(Strategy, "jwt-acce
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             secretOrKey:  configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
             passReqToCallback: true,
-            ignoreExpiration: false
+            ignoreExpiration: false,
+            
         })
      }
 
@@ -29,11 +30,14 @@ export class JwtAccessTokenStrategy extends PassportStrategy(Strategy, "jwt-acce
         console.log(req.headers['user-agent'])
         // Look up user in the DB, if it doesn't exist it throws 404
         // We catch 404 here then throw 401
-        console.log(payload)
         try {
-            return await this.userService.findUserById(payload.sub)
+            const user = await this.userService.findUserById(payload.sub)
+            return { id: user.id, email: user.email }
         } catch (e) {
-            throw new UnauthorizedException("User with the specific user id is unauthorized.")
+            if (e instanceof NotFoundException) {
+                throw new UnauthorizedException("User with the specific user id is unauthorized.")
+            }
+            throw e
         }
     }
 }

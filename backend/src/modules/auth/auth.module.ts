@@ -4,7 +4,7 @@ import { AuthController } from './auth.controller';
 import { UserModule } from '../user/user.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtAccessTokenStrategy } from './strategies/acces-token.strategy';
+import { JwtAccessTokenStrategy } from './strategies/access-token.strategy';
 import { QuizModule } from '../quiz/quiz.module';
 import { JwtRefreshTokenStrategy } from './strategies/refresh-token.strategy';
 

@@ -25,7 +25,7 @@ services:
       - mongodb-data:/data/db/
       - mongodb-log:/var/log/mongodb/
       - ./db/mongodb/initdb.d/init_quiz_db.js:/docker-entrypoint-initdb.d/init_quiz_db.js:ro
-      - ./db/mongodb/initdb.d/data.json:/docker-entrypoint-initdb.d/questions.json:ro
+      - ./db/mongodb/initdb.d/data_prod.json:/docker-entrypoint-initdb.d/questions.json:ro
     env_file:
       - .env
     ports:

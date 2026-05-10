@@ -5,11 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { QuizEntity } from './entities/quiz.entity';
 import { UserModule } from '../user/user.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Question, QuestionSchema } from './schemas/question.schema';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([QuizEntity]),
-    MongooseModule.forFeature([]),
+    MongooseModule.forFeature([{ name: Question.name, schema: QuestionSchema }]),
     UserModule
   ],
   providers: [QuizService],

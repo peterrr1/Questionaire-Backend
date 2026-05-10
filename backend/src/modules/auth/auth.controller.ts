@@ -1,11 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request, UseGuards } from '@nestjs/common';
 import { LoginUserDto } from './dto/request/login.dto';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from './dto/request/register.dto';
-import type { Request } from 'express';
 import { JwtAccessTokenGuard } from './guards/access-token.guard';
 import { JwtRefreshTokenGuard } from './guards/refresh-token.guard';
 import { UserAuthTokensDto } from './dto/response/auth-token.dto';
+import { RequestUser, RequestUserWithRefresh } from 'src/utils/request-user-interface.util';
 
 @Controller('auth')
 export class AuthController {
@@ -27,20 +27,15 @@ export class AuthController {
 
     @UseGuards(JwtAccessTokenGuard)
     @Get('logout')
-    async logout(@Req() req: Request) {
-
-        await this.authService.logout(req.user?.['sub'])
+    async logout(@Request() req: { user: RequestUser }) {
+        await this.authService.logout(req.user.id)
     }
 
     @UseGuards(JwtRefreshTokenGuard)
     @Get('refresh')
-    async refreshTokens(@Req() req: Request) {
-        const userId = req.user?.['sub']
-        console.log(`UserID: ${userId}`)
-        const refreshToken = req.user?.['refreshToken']
-        console.log(`Token: ${refreshToken}`)
+    async refreshTokens(@Request() req: { user: RequestUserWithRefresh }) {
         
-        return this.authService.refreshTokens(userId, refreshToken)
+        return this.authService.refreshTokens(req.user.id, req.user.refreshToken)
     }
 
 

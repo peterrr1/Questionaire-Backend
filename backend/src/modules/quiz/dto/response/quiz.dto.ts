@@ -8,15 +8,11 @@ import { IsString } from "class-validator"
 export class QuizInfoDto {
     @Expose()
     @IsString()
-    id: string
+    quiz_id: string
     
     @Expose()
     @IsString()
     name: string
-
-    @Expose()
-    @IsString()
-    collection_id: string
 
     @Expose()
     visibility: Visibility
