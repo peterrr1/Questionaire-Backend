@@ -1,11 +1,10 @@
-import { Body, Controller, Delete, Get, Header, NotFoundException, Param, Post, Query, Request, Res, StreamableFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { QuizService } from './quiz.service';
 import { QuizInfoDto } from './dto/response/quiz.dto';
 import { QuizInfoCompactDto } from './dto/response/quiz-compact.dto';
 import { QuestionDto } from './dto/response/question.dto';
 import { JwtAccessTokenGuard } from '../auth/guards/access-token.guard';
 import { QuizDraftDto } from './dto/request/quiz-draft.dto';
-import { UserService } from '../user/user.service';
 import { RequestUser } from 'src/utils/request-user-interface.util';
 import { OptionalJwtAccessTokenGuard } from '../auth/guards/optional-access-token.guard';
 
@@ -13,8 +12,7 @@ import { OptionalJwtAccessTokenGuard } from '../auth/guards/optional-access-toke
 @Controller('quiz')
 export class QuizController {
     constructor(
-        private quizService: QuizService,
-        private userService: UserService
+        private quizService: QuizService
     ) {}
 
     @UseGuards(JwtAccessTokenGuard)
@@ -36,20 +34,26 @@ export class QuizController {
         return this.quizService.getAllQuiz(req.user?.id)
     }
 
-    //@UseGuards(JwtAccessTokenGuard)
-    @Get('questions/:collection_id')
+    @UseGuards(OptionalJwtAccessTokenGuard)
+    @Get('questions/:quiz_id')
     async getAllQuestionByCategory (
-        @Param('collection_id') collection_id: string,
+        @Request() req: { user: RequestUser },
+        @Param('quiz_id') quiz_id: string,
         @Query('category') category: string
     ): Promise<QuestionDto[]> {
-        console.log(category)
-        if (category === undefined) {
-            return this.quizService.getAllQuestionOrThrow(collection_id)
+        const quiz = await this.quizService.findOneQuizByIdOrThrow(quiz_id)
+
+        if (!this.quizService.isViewableBy(quiz, req.user?.id)) {
+            throw new NotFoundException(`Quiz with collection ${quiz_id} doesn't exist.`)
         }
-        return this.quizService.getAllQuestionByCategoryOrThrow(collection_id, category)
+
+        if (category === undefined) {
+            return this.quizService.getAllQuestionOrThrow(quiz_id)
+        }
+        return this.quizService.getAllQuestionByCategoryOrThrow(quiz_id, category)
     }
 
-    @UseGuards(JwtAccessTokenGuard)    
+    @UseGuards(OptionalJwtAccessTokenGuard)    
     @Get('info/:quiz_id')
     async getQuizInformation(
         @Request() req: {user : RequestUser | undefined},
@@ -59,36 +63,26 @@ export class QuizController {
         // Load quiz info
         const quizInfo = await this.quizService.findOneQuizByIdOrThrow(quiz_id)
 
-        if (req.user === undefined) {
-            const respondDto = this.quizService.createQuizInfoResponseDto(quizInfo, false)
-            //console.log(respondDto)
-            return respondDto
-        } else {
-            console.log(`INFO/:ID ->${req.user.id}`)
-            // Check user
-            const editable = await this.quizService.isEditable(req.user.id, quiz_id)
-            
-            console.log("QUIZ INFO")
-            console.log(quizInfo)
-
-            // Load question info
-            //const questionCategories = [...new Set((await this.quizService.getAllQuestionOrThrow(quizInfo.collection_id)).map((quiz) => quiz.category))]
-            
-            const respondDto = this.quizService.createQuizInfoResponseDto(quizInfo, editable)
-            //console.log(respondDto)
-            return respondDto
+        if (!this.quizService.isViewableBy(quizInfo, req.user?.id)) {
+            throw new NotFoundException(`Quiz with id ${quiz_id} doesn't exist.`)
         }
 
-        
+        const editable = req.user !== undefined && quizInfo.author?.id === req.user.id
+        return this.quizService.createQuizInfoResponseDto(quizInfo, editable)
     }
+
 
     @UseGuards(JwtAccessTokenGuard)
     @Delete('delete/:quiz_id')
     async deleteQuiz(
-        @Request() req: { user: RequestUser},
+        @Request() req: { user: RequestUser },
         @Param('quiz_id') quiz_id: string
     ): Promise<void> {
+        
+        const quiz = await this.quizService.findOneQuizByIdOrThrow(quiz_id)
+        if (quiz.author?.id !== req.user.id) {
+            throw new ForbiddenException("You are not allowed to delete this quiz.")
+        }
         await this.quizService.deleteQuizViaQuizId(quiz_id)
     }
-
 }

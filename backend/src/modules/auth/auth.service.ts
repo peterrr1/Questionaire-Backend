@@ -1,11 +1,10 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterUserDto } from './dto/request/register.dto';
 import { LoginUserDto } from './dto/request/login.dto';
 import { UserAuthTokensDto } from './dto/response/auth-token.dto';
-import { plainToClass, plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +12,7 @@ export class AuthService {
         private userService: UserService,
         private jwtService: JwtService
     ) {}
+    private readonly logger = new Logger(AuthService.name)
 
     async registerUser(dto: RegisterUserDto) {
         // Check if user exists if not create it
@@ -22,7 +22,7 @@ export class AuthService {
 
     async login(data: LoginUserDto): Promise<UserAuthTokensDto> {
         const user = await this.userService.findUserByEmailOrThrow(data.email)
-        console.log(user)
+        this.logger.log(user)
         const passwordHash = await bcrypt.compare(data.password, user.password)
 
         if (!passwordHash) {
@@ -72,14 +72,19 @@ export class AuthService {
 
     async refreshTokens(userId: string, refreshToken: string): Promise<UserAuthTokensDto> {
         const user = await this.userService.findUserById(userId)
-        console.log(`UserID: ${userId}`)
-        console.log(user)
+        this.logger.log(user)
+
         if (!user || !user.refreshToken) {
+            await this.resetRefreshToken(user.id)
             throw new ForbiddenException("Access Denied")
         }
 
+        if (!user.refreshTokenExpiry || user.refreshTokenExpiry.getTime() <= Date.now()) {
+            await this.resetRefreshToken(user.id)
+            throw new ForbiddenException("Access denied")
+        }
+
         const refreshTokensMatch = await bcrypt.compare(refreshToken, user.refreshToken)
-        console.log(refreshTokensMatch)
         if (!refreshTokensMatch) {
             throw new ForbiddenException('Access Denied')
         }
@@ -88,5 +93,12 @@ export class AuthService {
         await this.updateRefreshToken(user.id, tokens.refreshToken)
 
         return tokens
+    }
+
+    private async resetRefreshToken(userId: string): Promise<void> {
+        await this.userService.updateUserData(userId, {
+                refreshToken: null,
+                refreshTokenExpiry: null
+            })
     }
 }

@@ -10,9 +10,6 @@ import { v4 as uuidv4 } from 'uuid';
 export class QuizEntity extends DefaultEntity {
     @Column()
     name: string
-    
-    @Column({unique: true})
-    collection_id: string
 
     @Column({
         type: "enum",
@@ -34,10 +31,4 @@ export class QuizEntity extends DefaultEntity {
         onDelete: 'CASCADE'
     })
     author: UserEntity
-
-    @BeforeInsert()
-    generateCollectionId() {
-        if (this.collection_id == null)
-            this.collection_id = `quiz_${uuidv4()}`
-    }
 }

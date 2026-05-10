@@ -1,10 +1,10 @@
 const fs = require('fs')
 
-const collectionId = new ObjectId()
-
 const DATABASE_NAME = "quiz_db"
 //const COLLECTION_NAME = "quiz_" + collectionId.toString()
-const COLLECTION_NAME = process.env.DEFAULT_COLLECTION_ID
+const COLLECTION_NAME = "questions"
+const SEED_QUIZ_ID = process.env.DEFAULT_QUIZ_ID
+
 const POPULATE_QUESTIONS_JSON = "/docker-entrypoint-initdb.d/questions.json"
 
 
@@ -16,6 +16,8 @@ if (!db.getCollectionNames().includes(COLLECTION_NAME)) {
   db.createCollection(COLLECTION_NAME);
 }
 
+db.getCollection(COLLECTION_NAME).createIndex({ quiz_id: 1, category: 1 })
+
 function question(type, category, text, options, correctOptionIndex, category_display_name) {
   const optionIds = options.map(() => new ObjectId().toString());
   
@@ -25,6 +27,7 @@ function question(type, category, text, options, correctOptionIndex, category_di
   
 
   return {
+    quiz_id: SEED_QUIZ_ID,
     type: type,
     category: category,
     question: text,
@@ -46,7 +49,7 @@ try {
 
     const questionsJson = JSON.parse(raw);
 
-    const document = questionsJson.map(q => 
+    const document = questionsJson.map(q =>
         question(
             q.type,
             q.category,
@@ -58,7 +61,10 @@ try {
     )
     print(`Loaded ${document.length} questions from JSON file`);
 
-    if (document.length > 0) {
+    const alreadySeeded = db.getCollection(COLLECTION_NAME).countDocuments({ quiz_id: SEED_QUIZ_ID}) > 0
+
+
+    if (document.length > 0 && !alreadySeeded) {
       db.getCollection(COLLECTION_NAME).insertMany(document)
     }
     print("MongoDB init script completed successfully");

@@ -8,8 +8,11 @@ export class Option {
     option: string
 }
 
-@Schema()
+@Schema({ collection: 'questions' })
 export class Question {
+    @Prop({ required: true, index: true})
+    quiz_id: string
+
     @Prop({required: true})
     type: string
 
@@ -32,3 +35,5 @@ export class Question {
 
 
 export const QuestionSchema = SchemaFactory.createForClass(Question)
+QuestionSchema.index({ quiz_id: 1, category: 1 })
+

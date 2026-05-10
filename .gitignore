@@ -1,3 +1,4 @@
 /db/mongodb/initdb.d/
 archive.yml
 .env
+.DS_Store
