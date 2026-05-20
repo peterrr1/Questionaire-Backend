@@ -5,7 +5,11 @@ import { IsString, ValidateNested } from "class-validator";
 export class QuestionDto {
     @Expose()
     @IsString()
-    _id: string
+    id: string
+
+    @Expose()
+    @IsString()
+    quiz_id: string
 
     @Expose()
     @IsString()
@@ -37,7 +41,7 @@ export class QuestionDto {
 export class OptionDto {
     @Expose()
     @IsString()
-    _id: string
+    id: string
 
     @Expose()
     @IsString()

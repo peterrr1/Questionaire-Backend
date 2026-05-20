@@ -1,7 +1,7 @@
 [
   {
     "type": "SINGLE_OPTION",
-    "category": "JOGI_ÉS_IGAZGATASI_KERDESEK",
+    "category": "JOGI_ES_IGAZGATASI_KERDESEK",
     "text": "Kié hazánkban a vad tulajdonjoga?",
     "options": [
       {
@@ -43,7 +43,7 @@
   },
   {
     "type": "SINGLE_OPTION",
-    "category": "JOGI_ÉS_IGAZGATASI_KERDESEK",
+    "category": "JOGI_ES_IGAZGATASI_KERDESEK",
     "text": "Milyen formában gyakorolható a vadászati jog?",
     "options": [
       {
@@ -64,7 +64,7 @@
   },
   {
     "type": "SINGLE_OPTION",
-    "category": "JOGI_ÉS_IGAZGATASI_KERDESEK",
+    "category": "JOGI_ES_IGAZGATASI_KERDESEK",
     "text": "Mekkora hazánkban a vadászterület minimális nagysága?",
     "options": [
       {
@@ -85,7 +85,7 @@
   },
   {
     "type": "SINGLE_OPTION",
-    "category": "JOGI_ÉS_IGAZGATASI_KERDESEK",
+    "category": "JOGI_ES_IGAZGATASI_KERDESEK",
     "text": "Mely szervezet az elsőfokú vadászati hatóság hazánkban?",
     "options": [
       {

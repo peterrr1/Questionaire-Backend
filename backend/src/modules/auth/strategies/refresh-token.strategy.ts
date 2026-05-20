@@ -29,6 +29,6 @@ export class JwtRefreshTokenStrategy extends PassportStrategy(Strategy, "jwt-ref
         if (!refreshToken) {
             throw new UnauthorizedException('Refresh token missing')
         }
-        return { ...payload, refreshToken }
+        return { id: payload.sub, email: payload.email, refreshToken }
     }
 }

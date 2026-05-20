@@ -17,39 +17,6 @@ services:
     networks:
       - backend
 
-  mongodb:
-    container_name: mongodb
-    hostname: mongodb
-    image: mongo:latest
-    volumes:
-      - mongodb-data:/data/db/
-      - mongodb-log:/var/log/mongodb/
-      - ./db/mongodb/initdb.d/init_quiz_db.js:/docker-entrypoint-initdb.d/init_quiz_db.js:ro
-      - ./db/mongodb/initdb.d/data_prod.json:/docker-entrypoint-initdb.d/questions.json:ro
-    env_file:
-      - .env
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-    networks:
-      - backend
-  
-  azurite:
-    container_name: azurite
-    hostname: azurite
-    image: mcr.microsoft.com/azure-storage/azurite
-    restart: unless-stopped
-    expose:
-      - 10000
-    ports:
-      - "10000:10000"
-    command: 'azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --loose --skipApiVersionCheck' 
-    networks:
-      - backend
-
-
     
 volumes:
   postgres-data:

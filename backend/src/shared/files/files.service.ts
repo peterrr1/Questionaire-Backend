@@ -49,6 +49,7 @@ export class FilesAzureService {
             '..',
             '..',
             '..',
+            '..',
             'assets',
             'default_woman_avatar.png'
         )
@@ -69,6 +70,7 @@ export class FilesAzureService {
         this.containerName = "media"
         const defaultImagePath = path.join(
             __dirname,
+            '..',
             '..',
             '..',
             '..',

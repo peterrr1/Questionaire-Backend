@@ -31,17 +31,25 @@ then
         --role-assignment-mode 'rbac-abac' \
         --dnl-scope TenantReuse
 
-    LOGIN_SERVER=$(az acr show \
+    az acr show \
         --name "${ACR}" \
-        --query loginServer --output tsv)
+        --query loginServer --output tsv
 
     az acr login --name ${ACR}
 elif [ $step = 3 ]
 then
+    echo "Create a docker image and run it locally..."
     LOGIN_SERVER=$(az acr show \
         --name "${ACR}" \
         --query loginServer --output tsv)
-        
-    echo "Login server name: ${LOGIN_SERVER}"
+
+    IMAGE_TAG="$(git rev-parse --short HEAD)"
+    IMAGE="${LOGIN_SERVER}.azurecr.io/backend:${IMAGE_TAG}"
+
+    docker build \
+    --tag "${IMAGE}" \
+    .
+
+    docker run --rm -p 8080:8080 "${IMAGE}"
 fi
 

@@ -21,8 +21,6 @@ export class QuizController {
         @Request() req: { user: RequestUser },
         @Body() dto: QuizDraftDto
     ): Promise<void> {
-        console.log(`CREATE ->${req.user.id}`)
-        console.log('raw dto:', dto);
         return this.quizService.createQuiz(req.user.id, dto)
     }
 
@@ -40,7 +38,7 @@ export class QuizController {
         @Request() req: { user: RequestUser },
         @Param('quiz_id') quiz_id: string,
         @Query('category') category: string
-    ): Promise<QuestionDto[]> {
+    ): Promise<QuestionDto[] | string> {
         const quiz = await this.quizService.findOneQuizByIdOrThrow(quiz_id)
 
         if (!this.quizService.isViewableBy(quiz, req.user?.id)) {
@@ -48,9 +46,13 @@ export class QuizController {
         }
 
         if (category === undefined) {
-            return this.quizService.getAllQuestionOrThrow(quiz_id)
+            const data = await this.quizService.getAllQuestionOrThrow(quiz_id)
+            return data.length == 0 ? "No questions were found" : data
         }
-        return this.quizService.getAllQuestionByCategoryOrThrow(quiz_id, category)
+
+        const data = await this.quizService.getAllQuestionByCategoryOrThrow(quiz_id, category)
+
+        return data.length == 0 ? "No questions were found" : data
     }
 
     @UseGuards(OptionalJwtAccessTokenGuard)    
@@ -80,6 +82,7 @@ export class QuizController {
     ): Promise<void> {
         
         const quiz = await this.quizService.findOneQuizByIdOrThrow(quiz_id)
+        
         if (quiz.author?.id !== req.user.id) {
             throw new ForbiddenException("You are not allowed to delete this quiz.")
         }

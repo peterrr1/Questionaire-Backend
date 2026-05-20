@@ -10,7 +10,6 @@ import { Question, QuestionSchema } from './schemas/question.schema';
 @Module({
   imports: [
     TypeOrmModule.forFeature([QuizEntity]),
-    MongooseModule.forFeature([{ name: Question.name, schema: QuestionSchema }]),
     UserModule
   ],
   providers: [QuizService],

@@ -10,7 +10,6 @@ import { MongooseModule } from "@nestjs/mongoose";
     ConfigModule,
     UserModule,
     QuizModule,
-    MongooseModule.forFeature([])
   ],
   providers: [SeederService],
   exports: [SeederService]

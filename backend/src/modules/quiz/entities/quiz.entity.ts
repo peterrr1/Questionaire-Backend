@@ -12,7 +12,7 @@ export class QuizEntity extends DefaultEntity {
     name: string
 
     @Column({
-        type: "enum",
+        type: "simple-enum",
         enum: Visibility,
         default: Visibility.PUBLIC
     })

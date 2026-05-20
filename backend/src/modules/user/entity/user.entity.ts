@@ -18,7 +18,7 @@ export class UserEntity extends DefaultEntity {
     @Column({ type: 'text', nullable: true, default: null})
     refreshToken: string | null
 
-    @Column({type: 'timestamp', nullable: true, default: null})
+    @Column({type: 'datetime', nullable: true, default: null})
     refreshTokenExpiry: Date | null
 
     @Column()
