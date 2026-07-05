@@ -2,3 +2,4 @@
 archive.yml
 .env
 .DS_Store
+scripts/seeder/data/images

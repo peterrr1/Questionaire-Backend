@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserEntity } from './entity/user.entity';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
+import { CosmosDBModule } from 'src/shared/cosmosdb/cosmosdb.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([UserEntity])],
+    imports: [],
     providers: [UserService],
     controllers: [UserController],
     exports: [UserService]

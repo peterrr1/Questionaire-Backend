@@ -44,7 +44,7 @@ variable "media_storage_container_name" {
 variable "repository" {
   description = "The repository name"
   type        = string
-  default     = "fruits-on-azure-container-apps"
+  default     = "questionaire-azure-container-apps"
 }
 
 variable "creator" {
@@ -57,32 +57,6 @@ variable "tags" {
   type        = map(any)
   description = "The custom tags for all resources"
   default     = {}
-}
-
-variable "default_quiz_id" {
-    type = string
-    sensitive = true
-}
-
-variable "default_quiz_name" {
-  type        = string
-  description = "Name of the seed quiz created on first boot."
-}
-
-variable "default_user_email" {
-  type        = string
-  description = "Email of the seed user created on first boot."
-}
-
-variable "default_user_name" {
-  type        = string
-  description = "Username of the seed user created on first boot."
-}
-
-variable "default_user_password" {
-  type        = string
-  description = "Password of the seed user created on first boot."
-  sensitive   = true
 }
 
 variable "jwt_access_secret" {

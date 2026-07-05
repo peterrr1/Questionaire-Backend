@@ -28,11 +28,10 @@ export class CosmosDBService implements OnModuleInit {
         return database
     }
 
-    getContainer() {
+    getContainer(containerName: string) {
 
         const database = this.getDatabase()
 
-        const containerName: string = this.configService.getOrThrow<string>("COSMOS_DB_CONTAINER_NAME")
         const container = database.container(containerName)
 
         return container

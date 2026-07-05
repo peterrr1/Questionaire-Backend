@@ -18,20 +18,27 @@ import { toCategoryKey } from 'src/utils/category.util';
 import { Visibility } from '../common/enums/enum.common';
 import { CosmosDBService } from 'src/shared/cosmosdb/cosmosdb.service';
 import { Container } from '@azure/cosmos';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class QuizService implements OnModuleInit {
     constructor(
-        @InjectRepository(QuizEntity) private quizRepository: Repository<QuizEntity>,
         private userService: UserService,
         private filesService: FilesAzureService,
-        private cosmosDb: CosmosDBService
+        private cosmosDb: CosmosDBService,
+        private configService: ConfigService
     ) {}
     
-    private cosmosContainer!: Container
+    private questionContainer!: Container
+    private quizContainer!: Container
 
     onModuleInit() {
-        this.cosmosContainer = this.cosmosDb.getContainer()
+        const questionContainerName: string = this.configService.getOrThrow<string>("COSMOS_DB_QUESTIONS_CONTAINER_NAME")
+        const quizContainerName: string = this.configService.getOrThrow<string>("COSMOS_DB_QUIZ_CONTAINER_NAME") 
+
+        this.questionContainer = this.cosmosDb.getContainer(questionContainerName)
+        this.quizContainer = this.cosmosDb.getContainer(quizContainerName)
+
     }
 
 
@@ -39,27 +46,21 @@ export class QuizService implements OnModuleInit {
 
     
 
-    async createQuiz(user_id: string, quizDraft: QuizDraftDto): Promise<void> {
+    async createQuiz(user_id: string, quiz_draft: QuizDraftDto): Promise<void> {
         const quizId = uuidv4()
         const defaultDisplayImageUrl = await this.filesService.uploadDefaultQuizImage(quizId)
         
         // Create a quiz entity
-        const newQuiz = this.quizRepository.create({
-            name: quizDraft.quiz_information.quiz_name,
-            question_categories: quizDraft.quiz_information.question_categories.map(q => toCategoryKey(q)),
-            categories_display_name: quizDraft.quiz_information.question_categories,
-            visibility: quizDraft.quiz_information.visibility as Visibility,
-            author: { id: user_id },
+        await this.quizContainer.items.create({
+            quiz_id: quizId,
+            name: quiz_draft.quiz_information.quiz_name,
+            question_categories: quiz_draft.quiz_information.question_categories.map(q => toCategoryKey(q)),
+            categories_display_name: quiz_draft.quiz_information.question_categories,
+            visibility: quiz_draft.quiz_information.visibility,
             displayImageUrl: defaultDisplayImageUrl,
-        }
-    )
-
-        // Save the newly created quiz entity
-        await this.quizRepository.save(newQuiz)
-
-
+        })
         
-        const questions = quizDraft.questions.map(q => {
+        const questions = quiz_draft.questions.map(q => {
             const options = q.options.map(o => ({
                 id: uuidv4(),
                 option: o.option,
@@ -68,7 +69,7 @@ export class QuizService implements OnModuleInit {
             const correctOptionId = options[q.correct_option - 1].id;
 
             return {
-                quiz_id: newQuiz.id,
+                quiz_id: quizId,
                 type: q.type,
                 category: toCategoryKey(q.category),
                 category_display_name: q.category,
@@ -78,80 +79,54 @@ export class QuizService implements OnModuleInit {
             };
         });
 
-        this.cosmosContainer.items.upsert(questions)
+        await this.questionContainer.items.upsert(questions)
 
         //await this.questionModel.insertMany(questions)
     }
 
-
-    async createQuizWithSpecificId(user_id: string, name: string, quiz_id: string, categories_display_name: string[]) {
-        const defaultDisplayImageUrl = await this.filesService.uploadDefaultQuizImage(quiz_id)
-
-        // Create a quiz entity
-        const newQuiz = this.quizRepository.create({
-            id: quiz_id,
-            name: name,
-            author: { id: user_id },
-            question_categories: categories_display_name.map(q => toCategoryKey(q)),
-            categories_display_name: categories_display_name,
-            displayImageUrl: defaultDisplayImageUrl
-        })
-        // Save the newly created quiz entity
-        await this.quizRepository.save(newQuiz)
-    }
-
     async getCategoriesDisplayNamesForQuiz(quiz_id: string): Promise<string[]> {
-        const { resources } = await this.cosmosContainer.items.query<string>({
+        const { resources } = await this.questionContainer.items.query<string>({
             query: "SELECT DISTINCT VALUE c.category_display_name FROM c WHERE c.quiz_id = @quiz_id",
             parameters: [
                 { name: "@quiz_id", value: quiz_id }
             ]},
             { partitionKey: quiz_id }).fetchAll()
         console.log(resources)
+
         return resources
         //return this.questionModel.distinct('category_display_name', { quiz_id }).exec()
     }
 
     async addQuestionToDocument(quiz_id: string, question: Partial<Question>): Promise<void> {
-        await this.cosmosContainer.items.create({...question, quiz_id})
+        await this.questionContainer.items.create({...question, quiz_id})
         //await this.questionModel.create({ ...question, quiz_id })
     }
 
-    async isEditable(id: string, quiz_id: string): Promise<boolean> {
-        const user = await this.userService.findUserWithQuizzes(id)
-        
-        return user.quizzes.some(q => q.id === quiz_id)
-    }
 
-    
-        async getAllQuiz(userId: string | undefined): Promise<QuizInfoCompactDto[]> {
-            const where: FindOptionsWhere<QuizEntity>[] = [{visibility: Visibility.PUBLIC}]
+    async getAllQuiz(user_id: string | undefined) {
+        const where: FindOptionsWhere<QuizEntity>[] = [{visibility: Visibility.PUBLIC}]
 
-            if (userId !== undefined) {
-                where.push({author: {id: userId}})
-            }
-
-            const quizList = await this.quizRepository.find({
-                where,
-                relations: { author: true}
-            }) 
-            return quizList.map(quiz => plainToClass(QuizInfoCompactDto, quiz))
+        if (userId !== undefined) {
+            where.push({author: {id: user_id}})
         }
 
-
-
-    async findQuizByIdOrNull(id: string): Promise<QuizEntity | null> {
-        return this.quizRepository.findOneBy({id: id})
+        const quizResult = await this.questionContainer.items.query({
+            query: "SELECT * from c where c.visibility = 'PUBLIC'"
+        })
     }
 
-    async findOneQuizByIdOrThrow(id: string): Promise<QuizEntity> {
-        const quiz = await this.quizRepository.findOne({
-            where: {id: id},
-            relations: {author: true}
-        })
-        
+
+
+    async findQuizByIdOrThrow(question_id: string): Promise<QuizEntity | null> {
+        //return this.quizRepository.findOneBy({id: id})
+        const quiz = this.questionContainer.items.query({
+            query: "SELECT * FROM c where c.quiz_id = @question_id",
+            parameters: [{
+                name: "@question_id", value: question_id
+            }]
+        }).fetchAll()
         if (quiz === null) {
-            throw new NotFoundException(`Quiz with id ${id} doesn't exist.`)
+            throw new NotFoundException(`Quiz with id ${question_id} doesn't exist.`)
         }
 
         return quiz
@@ -163,7 +138,7 @@ export class QuizService implements OnModuleInit {
         /* const questions = await this.questionModel.find({ quiz_id }).lean().exec()
         return questions.map(q => plainToClass(QuestionDto, q, { excludeExtraneousValues: true })) */
 
-        const { resources } = await this.cosmosContainer.items.query({
+        const { resources } = await this.questionContainer.items.query({
             query: "SELECT * FROM c WHERE c.quiz_id = @quiz_id",
             parameters: [{
                 name: "@quiz_id", value: quiz_id
@@ -179,7 +154,8 @@ export class QuizService implements OnModuleInit {
     async getAllQuestionByCategoryOrThrow(quiz_id: string, category: string): Promise<QuestionDto[]> {
         /* const questions = await this.questionModel.find({ quiz_id, category }).lean().exec()
         return questions.map(q => plainToClass(QuestionDto, q, { excludeExtraneousValues: true })) */
-        const { resources } = await this.cosmosContainer.items.query({
+
+        const { resources } = await this.questionContainer.items.query({
             query: "SELECT * FROM c WHERE c.quiz_id = @quiz_id AND c.category = @category",
             parameters: [
                 { name: "@quiz_id", value: quiz_id },
@@ -220,7 +196,8 @@ export class QuizService implements OnModuleInit {
     async deleteQuizViaQuizId(quizId: string): Promise<void> {
         await this.findOneQuizByIdOrThrow(quizId)
         //await this.questionModel.deleteMany({ quiz_id: quizId }).exec()
-        await this.cosmosContainer.deleteAllItemsForPartitionKey(quizId)
+        await this.questionContainer.deleteAllItemsForPartitionKey(quizId)
+
         await this.quizRepository.delete({ id: quizId })
     }
 

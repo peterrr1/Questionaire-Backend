@@ -11,12 +11,6 @@ resource "azurerm_container_app" "api" {
     ]
   }
 
-
-  secret {
-    name = "default-quiz-id"
-    value = var.default_quiz_id
-  }
-
   secret {
     name = "container-registry-password"
     value = azurerm_container_registry.this.admin_password
@@ -30,11 +24,6 @@ resource "azurerm_container_app" "api" {
   secret {
     name = "jwt-refresh"
     value = var.jwt_refresh_secret
-  }
-
-  secret {
-    name  = "default-user-password"
-    value = var.default_user_password
   }
 
 
@@ -66,11 +55,6 @@ resource "azurerm_container_app" "api" {
         memory = "0.5Gi"
 
         env {
-            name = "DEFAULT_QUIZ_ID"
-            secret_name = "default-quiz-id"
-        }
-
-        env {
             name = "JWT_ACCESS_SECRET"
             secret_name = "jwt-access"
         }
@@ -91,8 +75,18 @@ resource "azurerm_container_app" "api" {
         }
         
         env {
-          name = "COSMOS_DB_CONTAINER_NAME"
-          value = azurerm_cosmosdb_sql_container.this.name
+          name = "COSMOS_DB_QUESTIONS_CONTAINER_NAME"
+          value = azurerm_cosmosdb_sql_container.questions.name
+        }
+
+        env {
+          name = "COSMOS_DB_QUIZ_CONTAINER_NAME"
+          value = azurerm_cosmosdb_sql_container.quiz.name
+        }
+
+        env {
+          name = "COSMOS_DB_USERS_CONTAINER_NAME"
+          value = azurerm_cosmosdb_sql_container.users.name
         }
 
         env {
@@ -100,39 +94,6 @@ resource "azurerm_container_app" "api" {
           value = azurerm_storage_account.sa.primary_connection_string
         }
 
-        env {
-          name  = "DB_TYPE"
-          value = "mssql"
-        }
-
-        env {
-          name  = "MSSQL_DB_HOST"
-          value = local.mssql_server_fqdn
-        }
-        env {
-          name  = "MSSQL_DB_NAME"
-          value = local.mssql_db_name
-        }
-
-        env {
-          name  = "DEFAULT_QUIZ_NAME"
-          value = var.default_quiz_name
-        }
-
-        env {
-          name  = "DEFAULT_USER_EMAIL"
-          value = var.default_user_email
-        }
-
-        env {
-          name  = "DEFAULT_USER_NAME"
-          value = var.default_user_name
-        }
-
-        env {
-          name        = "DEFAULT_USER_PASSWORD"
-          secret_name = "default-user-password"
-        }
     }
     min_replicas = 1
   }

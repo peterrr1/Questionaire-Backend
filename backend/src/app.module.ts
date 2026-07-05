@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { SQLDatabaseModule } from './shared/sqldb/sqldb.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { QuizModule } from './modules/quiz/quiz.module';
@@ -13,7 +12,6 @@ import { CosmosDBModule } from './shared/cosmosdb/cosmosdb.module';
     ConfigModule.forRoot({
       isGlobal: true
     }),
-    SQLDatabaseModule,
     UserModule,
     AuthModule,
     QuizModule,

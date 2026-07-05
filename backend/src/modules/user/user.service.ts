@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './entity/user.entity';
@@ -9,19 +9,35 @@ import { plainToClass } from 'class-transformer';
 import { use } from 'passport';
 import { FilesAzureService } from 'src/shared/files/files.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CosmosDBService } from 'src/shared/cosmosdb/cosmosdb.service';
+import { Container } from '@azure/cosmos';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class UserService {
+export class UserService implements OnModuleInit {
     constructor(
-        @InjectRepository(UserEntity)
-        private userRepository: Repository<UserEntity>,
-        private filesService: FilesAzureService
+        private cosmosDb: CosmosDBService, 
+        private filesService: FilesAzureService,
+        private configService: ConfigService
     ) {}
 
+    private userContainer!: Container
 
-    async getAllUsers(): Promise<UserDto[]> {
-        const users = await this.userRepository.find()
-        return users.map(user => plainToClass(UserDto, user))
+    onModuleInit() {
+        const userContainerName: string = this.configService.getOrThrow<string>("COSMOS_DB_USER_CONTAINER_NAME")
+
+        this.userContainer = this.cosmosDb.getContainer(userContainerName)
+    }
+
+
+    async getAllUsers() {
+        const users = await this.userContainer.items.query({
+            query: "SELECT * from u"
+        }).fetchAll()
+            
+        //const users = await this.userRepository.find()
+        //return users.map(user => plainToClass(UserDto, user))
+        return users
     }
 
 
