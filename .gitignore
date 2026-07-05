@@ -1,4 +1,5 @@
-/db/mongodb/initdb.d/
+/db/mongodb/initdb.d/data_prod.json
 archive.yml
 .env
 .DS_Store
+scripts/seeder/data/images/*
