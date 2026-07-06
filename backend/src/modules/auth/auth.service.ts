@@ -15,6 +15,7 @@ export class AuthService {
     private readonly logger = new Logger(AuthService.name)
 
     async registerUser(dto: RegisterUserDto) {
+        
         // Check if user exists if not create it
         await this.userService.createUser(dto)
     }
@@ -36,20 +37,20 @@ export class AuthService {
         return tokens
     }
 
-    async logout(userId: string) {
-        return this.userService.updateUserData(userId, {
-            refreshToken: null,
-            refreshTokenExpiry: null
+    async logout(user_id: string) {
+        return this.userService.updateUserData(user_id, {
+            refresh_token: null,
+            refresh_token_expiry: null
         })
     }
 
-    async updateRefreshToken(id: string, refreshToken: string): Promise<void> {
+    async updateRefreshToken(id: string, refresh_token: string): Promise<void> {
         const salt = await bcrypt.genSalt(10)
-        const hashedRefreshToken = await bcrypt.hash(refreshToken, salt)
+        const hashedRefreshToken = await bcrypt.hash(refresh_token, salt)
 
         await this.userService.updateUserData(id, {
-            refreshToken: hashedRefreshToken,
-            refreshTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            refresh_token: hashedRefreshToken,
+            refresh_token_expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         })
     }
 
@@ -74,18 +75,18 @@ export class AuthService {
         const user = await this.userService.findUserById(userId)
         this.logger.log(user)
 
-        if (!user || !user.refreshToken) {
+        if (!user || !user.refresh_token) {
             await this.resetRefreshToken(user.id)
             throw new ForbiddenException("Access Denied")
         }
 
-        if (!user.refreshTokenExpiry || user.refreshTokenExpiry.getTime() <= Date.now()) {
+        if (!user.refresh_token_expiry || new Date(user.refresh_token_expiry).getTime() <= Date.now()) {
             await this.resetRefreshToken(user.id)
             throw new ForbiddenException("Access denied")
         }
 
-        const refreshTokensMatch = await bcrypt.compare(refreshToken, user.refreshToken)
-        if (!refreshTokensMatch) {
+        const refresh_tokens_match = await bcrypt.compare(refreshToken, user.refresh_token)
+        if (!refresh_tokens_match) {
             throw new ForbiddenException('Access Denied')
         }
 
@@ -95,10 +96,10 @@ export class AuthService {
         return tokens
     }
 
-    private async resetRefreshToken(userId: string): Promise<void> {
-        await this.userService.updateUserData(userId, {
-                refreshToken: null,
-                refreshTokenExpiry: null
+    private async resetRefreshToken(user_id: string): Promise<void> {
+        await this.userService.updateUserData(user_id, {
+                refresh_token: null,
+                refresh_token_expiry: null
             })
     }
 }

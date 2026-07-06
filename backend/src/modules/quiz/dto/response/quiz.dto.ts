@@ -1,33 +1,38 @@
-import { UserDto } from "src/modules/user/dto/response/user.dto"
-import { Visibility } from "src/modules/common/enums/enum.common"
-import { Exclude, Expose } from "class-transformer"
-import { IsString } from "class-validator"
+// backend/src/modules/quiz/dto/response/quiz.dto.ts
+import { Expose, Transform, Type } from 'class-transformer'
 
-
-@Exclude()
-export class QuizInfoDto {
+export class QuizAuthorDto {
     @Expose()
-    @IsString()
+    username: string
+
+    @Expose()
+    created_at: string
+}
+
+export class QuizDto {
+    @Expose()
     quiz_id: string
-    
+
     @Expose()
-    @IsString()
     name: string
 
     @Expose()
-    visibility: Visibility
+    visibility: string
 
     @Expose()
-    author: UserDto
+    question_types: string[]
 
     @Expose()
-    question_categories: Array<string>
+    types_display_name: string[]
 
     @Expose()
-    categories_display_name: Array<string>
+    created_at: string
 
     @Expose()
-    editable: boolean
+    @Type(() => QuizAuthorDto)
+    author: QuizAuthorDto
+
+    @Expose()
+    @Transform(({ obj }) => `/files/quiz/${obj.quiz_id}/image`)
+    display_image_url: string
 }
-
-

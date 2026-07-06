@@ -85,7 +85,7 @@ resource "azurerm_container_app" "api" {
         }
 
         env {
-          name = "COSMOS_DB_USERS_CONTAINER_NAME"
+          name = "COSMOS_DB_USER_CONTAINER_NAME"
           value = azurerm_cosmosdb_sql_container.users.name
         }
 

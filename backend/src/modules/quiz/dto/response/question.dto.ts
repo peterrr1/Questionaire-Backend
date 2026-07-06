@@ -1,49 +1,71 @@
-import { Exclude, Expose, Type } from "class-transformer";
-import { IsString, ValidateNested } from "class-validator";
+import { Expose, Type, ClassConstructor } from "class-transformer";
 
-@Exclude()
-export class QuestionDto {
+
+class OptionDto {
     @Expose()
-    @IsString()
     id: string
 
     @Expose()
-    @IsString()
+    option: string
+}
+
+export class QuestionDto {
+    @Expose()
+    id: string
+
+    @Expose()
     quiz_id: string
 
     @Expose()
-    @IsString()
     type: string
 
     @Expose()
-    @IsString()
-    category: string
-
-    @Expose()
-    @IsString()
-    category_display_name: string
-
-    @Expose()
-    @IsString()
     question: string
 
     @Expose()
-    @IsString()
+    category: string
+
+    @Expose()
+    category_display_name: string
+}
+
+export class SingleOptionQuestionDto extends QuestionDto {
+    @Expose()
     correct_option: string
 
     @Expose()
-    @ValidateNested({each: true})
     @Type(() => OptionDto)
     options: OptionDto[]
 }
 
-@Exclude()
-export class OptionDto {
+
+export class ImageDescriptionQuestionDto extends QuestionDto {
     @Expose()
-    @IsString()
-    id: string
+    url: string
 
     @Expose()
-    @IsString()
-    option: string
+    answer: string
+}
+
+
+export class DatePickerQuestionDto extends QuestionDto {
+    @Expose()
+    start_date: string
+
+    @Expose()
+    end_date: string
+}
+
+
+export class SpeakingTopicQuestionDto extends QuestionDto {
+    @Expose()
+    topic_description: string
+}
+
+
+export const QUESTION_DTO_BY_TYPE: Record<string, ClassConstructor<QuestionDto>> = {
+    SINGLE_OPTION: SingleOptionQuestionDto,
+    IMAGE_DESCRIPTION: ImageDescriptionQuestionDto,
+    DATE_PICKER: DatePickerQuestionDto,
+    SPEAKING_TOPIC: SpeakingTopicQuestionDto,
 }

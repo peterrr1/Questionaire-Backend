@@ -1,7 +1,4 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserEntity } from './entity/user.entity';
 import * as bcrypt from 'bcrypt';
 import { RegisterUserDto } from '../auth/dto/request/register.dto';
 import { UserDto } from './dto/response/user.dto';
@@ -10,8 +7,10 @@ import { use } from 'passport';
 import { FilesAzureService } from 'src/shared/files/files.service';
 import { v4 as uuidv4 } from 'uuid';
 import { CosmosDBService } from 'src/shared/cosmosdb/cosmosdb.service';
-import { Container } from '@azure/cosmos';
+import { Container, ErrorResponse, SqlQuerySpec, User } from '@azure/cosmos';
 import { ConfigService } from '@nestjs/config';
+import { UserDocument } from './schemas/user.schema';
+import { PatchOperation } from 'node_modules/@azure/cosmos/dist/esm';
 
 @Injectable()
 export class UserService implements OnModuleInit {
@@ -23,6 +22,7 @@ export class UserService implements OnModuleInit {
 
     private userContainer!: Container
 
+    
     onModuleInit() {
         const userContainerName: string = this.configService.getOrThrow<string>("COSMOS_DB_USER_CONTAINER_NAME")
 
@@ -31,51 +31,53 @@ export class UserService implements OnModuleInit {
 
 
     async getAllUsers() {
-        const users = await this.userContainer.items.query({
-            query: "SELECT * from u"
-        }).fetchAll()
-            
-        //const users = await this.userRepository.find()
-        //return users.map(user => plainToClass(UserDto, user))
-        return users
+        const querySpec: SqlQuerySpec = {
+            query: "SELECT u.id, u.email, u.username, u.profile_picture_url, u.created_at from u"
+        }
+
+        const { resources } = await this.userContainer.items
+        .query<UserDocument>(querySpec).fetchAll()
+        
+        if (resources.length === 0) {
+            throw new NotFoundException("There are no users.")
+        }
+
+        return resources.map(user => plainToClass(UserDto, user, {
+            excludeExtraneousValues: true
+        }))
     }
 
 
 
-    async findUserById(id: string): Promise<UserEntity> {
-        const user = await this.userRepository.findOneBy({id})
+    async findUserById(id: string): Promise<UserDocument> {
+        const { resource } = await this.userContainer
+            .item(id, id).read<UserDocument>()
 
-        if (user === null)
+        if (resource === undefined)
             throw new NotFoundException("User with the given id does not exists!")
 
-        return user
+        return resource
     }
 
-    async findUserWithQuizzes(id: string): Promise<UserEntity> {
-        const user = await this.userRepository.findOne({
-            where: { id },
-            relations: { quizzes: true },
-        });
-        if (!user) throw new NotFoundException("User with the given id does not exist!");
-        return user;
-    }
 
-    async getUserById(id: string): Promise<UserDto> {
-        const user = await this.findUserWithQuizzes(id)
-        console.log(user)
-        if (user === null) {
-            throw new NotFoundException("User with the given email is not found!")
+
+    async findUserByEmailOrNull(email: string): Promise<UserDocument> {
+        const querySpec: SqlQuerySpec = {
+            query: "SELECT * from u WHERE u.email = @email",
+            parameters: [
+                { name: "@email", value: email }
+            ]
         }
-        return plainToClass(UserDto, user)
+
+        const { resources } = await this.userContainer.items
+            .query(querySpec).fetchNext()
+        
+            return resources[0] ?? null
     }
 
 
 
-    async findUserByEmailOrNull(email: string): Promise<UserEntity | null> {
-        return await this.userRepository.findOneBy({email: email})
-    }
-
-    async findUserByEmailOrThrow(email: string): Promise<UserEntity> {
+    async findUserByEmailOrThrow(email: string): Promise<UserDocument> {
         const user = await this.findUserByEmailOrNull(email)
         if (user === null) {
             throw new NotFoundException(`User with email ${email} was not found`)
@@ -84,47 +86,80 @@ export class UserService implements OnModuleInit {
     }
 
 
-    async updateUserData(id: string, data: Partial<UserEntity>): Promise<void> {
-        await this.userRepository.update(id, data)
+
+    
+    async updateUserData(id: string, data: Partial<UserDocument>): Promise<void> {
+        const operations: PatchOperation[] = Object.entries(data)
+            .map(([key, value]) => ({
+                op: 'set',
+                path: `/${key}`,
+                value: value ?? null
+            }))
+
+        try {
+            await this.userContainer.item(id, id).patch(operations)
+        } catch (e) {
+            if (e instanceof ErrorResponse && e.code === 404) {
+                throw new NotFoundException(`User with id ${id} does not exist!`) 
+            }
+            throw e    
+        }
     }
     
 
 
-    async deleteUserById(uid: string): Promise<void> {
-        const result = await this.userRepository.delete({id: uid})
-        if (result.affected === 0) {
-            throw new NotFoundException(`User with id: ${uid} doesn't exist`)
+    async deleteUserById(id: string): Promise<void> {
+        try {
+            await this.userContainer.item(id, id).delete()
+        } catch (e) {
+            if (e instanceof ErrorResponse && e.code === 404) {
+                 throw new NotFoundException(`User with id: ${id} doesn't exist`)
+            }
+            throw e
         }
+        await this.filesService.deleteUserAvatar(id)
     }
 
 
 
-    async createUser(userData: RegisterUserDto): Promise<UserEntity> {
-        const existing = await this.userRepository.findOneBy([{
-            email: userData.email,
-            username: userData.username
-        }])
-        if (existing) {
+    async createUser(user_data: RegisterUserDto): Promise<UserDocument> {
+         const querySpec: SqlQuerySpec = {
+            query: "SELECT TOP 1 * FROM u WHERE u.email = @email OR u.username = @username",
+            parameters: [
+                { name: "@email", value: user_data.email },
+                { name: "@username", value: user_data.username }
+            ]
+        }
+
+        const { resources: conflicts } = await this.userContainer.items
+            .query<UserDocument>(querySpec).fetchNext()
+        
+        const existing = conflicts[0]
+
+        if (existing !== undefined) {
             throw new BadRequestException(
-                existing.email === userData.email ? "Email is already in use!" : "Username is already in use!"
+                existing.email === user_data.email ? "Email is already in use!" : "Username is already in use!"
             )
         }
 
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(userData.password, salt)
+        const hashed_password = await bcrypt.hash(user_data.password, 10)
 
-        const userId = uuidv4()
+        const user_id = uuidv4()
 
-        const avatarUrl = await this.filesService.uploadDefaultAvatar(userId)
+        const new_user: UserDocument = {
+            id: user_id,
+            email: user_data.email,
+            username: user_data.username,
+            password: hashed_password,
+            refresh_token: null,
+            refresh_token_expiry: null,
+            created_at: new Date().toISOString()
+        }
 
-        const newUser = await this.userRepository.create({
-            id: userId,
-            email: userData.email,
-            username: userData.username,
-            password: hashedPassword,
-            profilePictureUrl: avatarUrl
-        })
+        const { resource } = await this.userContainer.items.create(new_user)
 
-        return await this.userRepository.save(newUser)
+        await this.filesService.uploadDefaultAvatar(user_id)
+
+        return resource!
     }
 }

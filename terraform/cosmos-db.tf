@@ -63,14 +63,10 @@ resource "azurerm_cosmosdb_sql_container" "quiz" {
   partition_key_paths = ["/quiz_id"]
 }
 
-resource "azurerm_cosmosdb_sql_container" "users" {
-  name                = "users"
+resource "azurerm_cosmosdb_sql_container" "user" {
+  name                = "user"
   resource_group_name = azurerm_resource_group.this.name
   account_name        = azurerm_cosmosdb_account.this.name
   database_name       = azurerm_cosmosdb_sql_database.this.name
   partition_key_paths = ["/id"]
-
-  unique_key {
-    paths = ["/email"]
-  }
 }
