@@ -1,0 +1,33 @@
+[
+  {
+    "type": "SINGLE_OPTION",
+    "text": "Kié hazánkban a vad tulajdonjoga?",
+    "category": "JOGI_ES_IGAZGATASI_KERDESEK",
+    "category_display_name": "Jogi és igazgatási kérdések",
+    "options": [
+      {
+        "id": 1,
+        "text": "Vadászatra jogosult"
+      },
+      {
+        "id": 2,
+        "text": "Földtulajdonhoz kötött"
+      },
+      {
+        "id": 3,
+        "text": "Állam"
+      }
+    ],
+    "correct_option_id": 3
+  },
+  {
+    "type": "DATE_PICKER",
+    "text": "Mikor van a gímszarvas bika vadászati idénye?",
+    "start_date": "09.01",
+    "end_date": "01.31"
+  },
+  {
+    "type": "SPEAKING_TOPIC",
+    "topic_description": ""
+  }
+]

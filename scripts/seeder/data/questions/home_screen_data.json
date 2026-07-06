@@ -1,0 +1,13 @@
+[
+    {
+        "quiz_name": "Vadászvizsga",
+        "types": [
+            "SINGLE_OPTION",
+            "IMAGE_DESCRIPTION",
+            "DATE_PICKER",
+            "GUN_KNOWLEDGE",
+            "VERBAL_TOPICS"
+        ],
+        "description": ""
+    }
+]

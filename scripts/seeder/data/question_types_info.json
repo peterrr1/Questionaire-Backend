@@ -1,0 +1,32 @@
+[
+    {
+        "type": "SINGLE_OPTION",
+        "display_name": "Feleletválasztós kérdések",
+        "description": "Az írásbeli vizsgán a vizsgázónak 50 kérdést tartalmazó tesztlapot kell kitöltenie, melyre 50 perc áll rendelkezésre. A megfelelt eredményhez a vizsgázónak legalább 40 kérdésre kell hibátlanul válaszolnia.",
+        "number_of_questions": "500"
+    },
+    {
+        "type": "IMAGE_DESCRIPTION",
+        "display_name": "",
+        "description": "",
+        "number_of_questions": ""
+    },
+    {
+        "type": "DATE_PICKER",
+        "display_name": "",
+        "description": "Az írásbeli vizsgán a vizsgázónak 50 kérdést tartalmazó tesztlapot kell kitöltenie, melyre 50 perc áll rendelkezésre. A megfelelt eredményhez a vizsgázónak legalább 40 kérdésre kell hibátlanul válaszolnia.",
+        "number_of_questions": ""
+    },
+    {
+        "type": "GUN_KNOWLEDGE",
+        "display_name": "",
+        "description": "",
+        "number_of_questions": ""
+    },
+    {
+        "type": "VERBAL_TOPICS",
+        "display_name": "",
+        "description": "",
+        "number_of_questions": ""
+    }
+]
